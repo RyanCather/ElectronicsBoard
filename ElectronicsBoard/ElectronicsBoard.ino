@@ -55,10 +55,14 @@ Servo myservo;
 // SD Card
 #define SDpin 53
 
-// IR Remote
-#include "Adafruit_NECremote.h"
-#define IRpin         24
-Adafruit_NECremote remote(IRpin);
+//// IR Remote
+//#include "Adafruit_NECremote.h"
+//#define IRpin         24
+//Adafruit_NECremote remote(IRpin);
+
+
+#define IR_INPUT_PIN    24
+#include "TinyIRReceiver.hpp"
 
 void setup() {
   Serial.begin(9600);           // Open serial communications and wait for port to open:
@@ -79,7 +83,7 @@ void setup() {
   logEvent("System Initialisation Start");
 
   // Traffic Lights - LED Outputs
-  
+
   pinMode(ledRed, OUTPUT);
   pinMode(ledYellow, OUTPUT);
   pinMode(ledGreen, OUTPUT);
@@ -100,7 +104,7 @@ void setup() {
   // DC Motor & Motor Module - L298N
   motor.setSpeed(70);
   logEvent("Init - DC Motor");
-  
+
   // Moisture Sensor
   pinMode(moisturePin, INPUT);
   logEvent("Init - Moisture Pin");
@@ -127,19 +131,93 @@ void setup() {
   logEvent("Init - Crash Sensor");
   SPI.begin();
 
+//  initPCIInterruptForTinyReceiver();
+  initPCIInterruptForTinyReceiver();
+  logEvent("IR Interrupt Begun");
+
   logEvent("System Initialisation Complete...");
 }
 
 void loop() {
-  motorDC();
-  doorAlarm();
- // remoteDecode();
-  delay(250);
+  doorAlarm();  // sonar and servo
+  smartHeatingSystem(); // IR remote & DC motor
+  coffeeMachine(); // GPS and & LEDs
+  delay(100);
+}
+
+void handleReceivedTinyIRData(uint16_t aAddress, uint8_t aCommand, bool isRepeat) {
+  logEvent("Infrared Code received: " + aCommand);
+  if (aCommand == 70) {
+    logEvent("IR Command - Up Pressed - Light Off");
+    digitalWrite(ledRed, HIGH);
+
+  }
+  if (aCommand == 21) {
+    logEvent("IR Command - Down Pressed - Light Off");
+    digitalWrite(ledRed, LOW);
+  }
+  if (aCommand == 68) {
+    Serial.println("Left");
+  }
+  if (aCommand == 67) {
+    Serial.println("Right");
+  }
+}
+
+/*
+   Sets the alarm (buzzer) off if someone/thing is too close (sonar).
+
+   @param null
+   @return null or void
+*/
+void doorAlarm() {
+
+}
+
+/**
+  Indicates whether the object is too close to the sensor.
+
+  @param distance value read from the distance sensor
+  @return true if object is too close, false otherwise.
+*/
+boolean isObjectTooClose(int distance) {
+//  if (distance > threshold) {
+//    return true;
+//  } else {
+//    return false;
+//  }
+
+}
+
+void smartHeatingSystem() {
+
+}
+
+void coffeeMachine() {
 
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 String remoteDecode() {
+  /*
   int c = remote.listen(5);  // seconds to wait before timing out!
   // Or you can wait 'forever' for a valid code
   //int c = remote.listen();  // Without a #, it means wait forever
@@ -213,6 +291,7 @@ String remoteDecode() {
     }
 
   }
+  */
 }
 
 int getSonarDistance() {
@@ -229,7 +308,7 @@ int getSonarDistance() {
   return distance;
 }
 
-void doorAlarm() {
+void doorAlarm1() {
   int doorThreshold = 10;
   int doorDistance = getSonarDistance();
   if (doorDistance < doorThreshold) {
@@ -248,8 +327,13 @@ void doorAlarm() {
 
 
 void motorDC() {
-  //  motor.forward();
-  //
+  motor.forward();
+  delay(1000);
+  motor.stop();
+  delay(1000);
+  motor.backward();
+  delay(1000);
+
   //  // Alternative method:
   //  // motor.run(L298N::FORWARD);
   //
