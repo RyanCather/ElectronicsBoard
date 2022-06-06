@@ -151,9 +151,9 @@ void setup() {
 }
 
 void loop() {
-  //  doorAlarm();  // sonar and servo
-  //  smartHeatingSystem(); // IR remote & DC motor
-  //  coffeeMachine(); // GPS and & LEDs
+  doorAlarm();  // sonar and servo
+  smartHeatingSystem(); // IR remote & DC motor
+  coffeeMachine(); // GPS and & LEDs
   remoteDecode();
   delay(100);
 }
@@ -232,88 +232,37 @@ void coffeeMachine() {
 String remoteDecode() {
 
   if (irrecv.decode(&results)) {
-    
-    int c=results.value;
-    Serial.println(c);
-//    if (results.value
-    
+
+    int code = results.value;
+    //    Serial.println(code);
+    if (code == 25245) {  // Up
+      Serial.println("Up");
+    }
+
+    /* Up     : 25245
+       Down   : -22441
+       Left   : 8925
+       Right  : -15811
+       Ok     : 765
+       1      : 26775
+       2      : -26521
+       3      : -20401
+       4      : 12495
+       5      : 6375
+       6      : 31365
+       7      : 4335
+       8      : 14535
+       9      : 23205
+       0      : 19125
+       #      : 21165
+     * *      : 17085
+    */
+
     irrecv.resume();
   }
-  /*
-    int c = remote.listen(5);  // seconds to wait before timing out!
-    // Or you can wait 'forever' for a valid code
-    //int c = remote.listen();  // Without a #, it means wait forever
-    if (c >= 0) {
-    switch (c) {
-
-        Serial.println("Code is :" + c);
-      // Top keys
-      case 70:
-        Serial.println("UP");
-        break;
-      case 21:
-        Serial.println("DOWN");
-        break;
-      case 68:
-        Serial.println("LEFT");
-
-        break;
-      case 67:
-        Serial.println("RIGHT");
-        break;
-      case 64:
-        Serial.println("OK");
-        break;
-      // Numbers
-      case 22:
-        Serial.println("1");
-        break;
-      case 25:
-        Serial.println("2");
-        break;
-      case 13:
-        Serial.println("3");
-        break;
-      case 12:
-        Serial.println("4");
-        break;
-      case 24:
-        Serial.println("5");
-        break;
-      case 94:
-        Serial.println("6");
-        break;
-      case 8:
-        Serial.println("7");
-        break;
-      case 28:
-        Serial.println("8");
-        break;
-      case 90:
-        Serial.println("9");
-        break;
-      case 82:
-        Serial.println("0");
-        break;
-
-      // # and *
-      case 66:
-        Serial.println("*");
-        break;
-      case 74:
-        Serial.println("#");
-        break;
 
 
-      // otherwise...
 
-      default:
-        Serial.println("Code is :" + c);
-        break;
-    }
-
-    }
-  */
 }
 
 int getSonarDistance() {
