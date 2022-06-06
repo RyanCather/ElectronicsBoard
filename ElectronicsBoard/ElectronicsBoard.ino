@@ -55,14 +55,22 @@ Servo myservo;
 // SD Card
 #define SDpin 53
 
-//// IR Remote
+// IR Remote
+
 //#include "Adafruit_NECremote.h"
-//#define IRpin         24
-//Adafruit_NECremote remote(IRpin);
+//Adafruit_NECremote remote(IR_INPUT_PIN);
+#include <IRremote.h>
+#define IR_INPUT_PIN    2
+IRrecv irrecv(IR_INPUT_PIN);
+decode_results results;
 
 
-#define IR_INPUT_PIN    24
-#include "TinyIRReceiver.hpp"
+//#include "TinyIRReceiver.hpp"
+#if !defined(STR_HELPER)
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+#endif
+//volatile struct TinyIRReceiverCallbackDataStruct sCallbackData;
 
 void setup() {
   Serial.begin(9600);           // Open serial communications and wait for port to open:
@@ -131,17 +139,22 @@ void setup() {
   logEvent("Init - Crash Sensor");
   SPI.begin();
 
-//  initPCIInterruptForTinyReceiver();
-  initPCIInterruptForTinyReceiver();
-  logEvent("IR Interrupt Begun");
+  // IR
+  //  pinMode(IR_INPUT_PIN, INPUT);
+
+  //  initPCIInterruptForTinyReceiver();
+  irrecv.enableIRIn();
+
+  logEvent("Init - IR Sensor");
 
   logEvent("System Initialisation Complete...");
 }
 
 void loop() {
-  doorAlarm();  // sonar and servo
-  smartHeatingSystem(); // IR remote & DC motor
-  coffeeMachine(); // GPS and & LEDs
+  //  doorAlarm();  // sonar and servo
+  //  smartHeatingSystem(); // IR remote & DC motor
+  //  coffeeMachine(); // GPS and & LEDs
+  remoteDecode();
   delay(100);
 }
 
@@ -181,11 +194,11 @@ void doorAlarm() {
   @return true if object is too close, false otherwise.
 */
 boolean isObjectTooClose(int distance) {
-//  if (distance > threshold) {
-//    return true;
-//  } else {
-//    return false;
-//  }
+  //  if (distance > threshold) {
+  //    return true;
+  //  } else {
+  //    return false;
+  //  }
 
 }
 
@@ -217,11 +230,20 @@ void coffeeMachine() {
 
 
 String remoteDecode() {
+
+  if (irrecv.decode(&results)) {
+    
+    int c=results.value;
+    Serial.println(c);
+//    if (results.value
+    
+    irrecv.resume();
+  }
   /*
-  int c = remote.listen(5);  // seconds to wait before timing out!
-  // Or you can wait 'forever' for a valid code
-  //int c = remote.listen();  // Without a #, it means wait forever
-  if (c >= 0) {
+    int c = remote.listen(5);  // seconds to wait before timing out!
+    // Or you can wait 'forever' for a valid code
+    //int c = remote.listen();  // Without a #, it means wait forever
+    if (c >= 0) {
     switch (c) {
 
         Serial.println("Code is :" + c);
@@ -290,7 +312,7 @@ String remoteDecode() {
         break;
     }
 
-  }
+    }
   */
 }
 
