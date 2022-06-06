@@ -56,21 +56,15 @@ Servo myservo;
 #define SDpin 53
 
 // IR Remote
-
-//#include "Adafruit_NECremote.h"
-//Adafruit_NECremote remote(IR_INPUT_PIN);
 #include <IRremote.h>
 #define IR_INPUT_PIN    2
 IRrecv irrecv(IR_INPUT_PIN);
 decode_results results;
 
-
-//#include "TinyIRReceiver.hpp"
 #if !defined(STR_HELPER)
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 #endif
-//volatile struct TinyIRReceiverCallbackDataStruct sCallbackData;
 
 void setup() {
   Serial.begin(9600);           // Open serial communications and wait for port to open:
@@ -140,9 +134,6 @@ void setup() {
   SPI.begin();
 
   // IR
-  //  pinMode(IR_INPUT_PIN, INPUT);
-
-  //  initPCIInterruptForTinyReceiver();
   irrecv.enableIRIn();
 
   logEvent("Init - IR Sensor");
@@ -156,25 +147,6 @@ void loop() {
   coffeeMachine(); // GPS and & LEDs
   remoteDecode();
   delay(100);
-}
-
-void handleReceivedTinyIRData(uint16_t aAddress, uint8_t aCommand, bool isRepeat) {
-  logEvent("Infrared Code received: " + aCommand);
-  if (aCommand == 70) {
-    logEvent("IR Command - Up Pressed - Light Off");
-    digitalWrite(ledRed, HIGH);
-
-  }
-  if (aCommand == 21) {
-    logEvent("IR Command - Down Pressed - Light Off");
-    digitalWrite(ledRed, LOW);
-  }
-  if (aCommand == 68) {
-    Serial.println("Left");
-  }
-  if (aCommand == 67) {
-    Serial.println("Right");
-  }
 }
 
 /*
