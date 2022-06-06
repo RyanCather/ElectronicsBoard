@@ -20,10 +20,20 @@ L298N motor(IN1, IN2);
 #define lineSensorPin 3    // Line Sensor (light). HIGH or LOW values.
 
 // GPS
+/* RXPin & TXPin
+ * If a Uno, then 4 and 3
+ * If a Mega/Leonardo, then 10 and 11.
+ * Check the software Serial documentation for change interrupts
+ * https://www.arduino.cc/en/Reference/SoftwareSerial
+ */
+static const int RXPin = 10, TXPin = 11;
+static const uint32_t GPSBaud = 9600;
+
 #include <SoftwareSerial.h>
-#include <TinyGPS.h>
-TinyGPS gps;
-SoftwareSerial ss(4, 3);
+#include <TinyGPS++.h>
+
+TinyGPSPlus gps; // The TinyGPS++ object
+SoftwareSerial ss(RXPin, TXPin);// The serial connection to the GPS device
 
 // Real Time Clock (RTC)
 #include "RTClib.h"
@@ -92,7 +102,7 @@ void setup() {
   logEvent("Init - LEDs");
 
   // GPS
-  ss.begin(4800);
+  ss.begin(GPSBaud);
   logEvent("Init - GPS");
 
   //Potentiometer
@@ -142,10 +152,11 @@ void setup() {
 }
 
 void loop() {
-  doorAlarm();  // sonar and servo
-  smartHeatingSystem(); // IR remote & DC motor
-  coffeeMachine(); // GPS and & LEDs
-  remoteDecode();
+//  doorAlarm();            // sonar and servo
+  smartHeatingSystem();     // IR remote & DC motor
+  coffeeMachine();          // GPS and & LEDs
+  remoteDecode();           // IR 
+  locationBarrier();        // GPS
   delay(100);
 }
 
@@ -156,7 +167,22 @@ void loop() {
    @return null or void
 */
 void doorAlarm() {
+  int doorThreshold = 1;
+  int doorDistance = getSonarDistance();
+  if (doorDistance < doorThreshold) {
 
+    // disabled noise output due to annoyance.
+    tone(piezoPin, 1000); // Send 1KHz sound signal...
+    delay(100);
+    tone(piezoPin, 500); // Send 1KHz sound signal...
+    delay(100);
+    String distanceStr = String(doorDistance);
+    String thresholdStr = String(doorThreshold);
+    String eventToLog = "Alarm activated, " + distanceStr + "<" + thresholdStr;
+    logEvent(eventToLog);
+  } else {
+    noTone(piezoPin);
+  }
 }
 
 /**
@@ -183,25 +209,34 @@ void coffeeMachine() {
 }
 
 
+/*
+   Gets the value given by the Keyes IR remote.
+   Code values are:
 
+   Up     : 25245
+   Down   : -22441
+   Left   : 8925
+   Right  : -15811
+   Ok     : 765
+   1      : 26775
+   2      : -26521
+   3      : -20401
+   4      : 12495
+   5      : 6375
+   6      : 31365
+   7      : 4335
+   8      : 14535
+   9      : 23205
+   0      : 19125
+   #      : 21165
+          : 17085
 
+   Test against each code and perform required action. See example in code.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-String remoteDecode() {
+   @params: None
+   @return: void
+*/
+void remoteDecode() {
 
   if (irrecv.decode(&results)) {
 
@@ -210,31 +245,8 @@ String remoteDecode() {
     if (code == 25245) {  // Up
       Serial.println("Up");
     }
-
-    /* Up     : 25245
-       Down   : -22441
-       Left   : 8925
-       Right  : -15811
-       Ok     : 765
-       1      : 26775
-       2      : -26521
-       3      : -20401
-       4      : 12495
-       5      : 6375
-       6      : 31365
-       7      : 4335
-       8      : 14535
-       9      : 23205
-       0      : 19125
-       #      : 21165
-     * *      : 17085
-    */
-
     irrecv.resume();
   }
-
-
-
 }
 
 int getSonarDistance() {
@@ -251,23 +263,6 @@ int getSonarDistance() {
   return distance;
 }
 
-void doorAlarm1() {
-  int doorThreshold = 10;
-  int doorDistance = getSonarDistance();
-  if (doorDistance < doorThreshold) {
-    tone(piezoPin, 1000); // Send 1KHz sound signal...
-    delay(100);
-    tone(piezoPin, 500); // Send 1KHz sound signal...
-    delay(100);
-    String distanceStr = String(doorDistance);
-    String thresholdStr = String(doorThreshold);
-    String eventToLog = "Alarm activated, " + distanceStr + "<" + thresholdStr;
-    logEvent(eventToLog);
-  } else {
-    noTone(piezoPin);
-  }
-}
-
 
 void motorDC() {
   motor.forward();
@@ -277,59 +272,35 @@ void motorDC() {
   motor.backward();
   delay(1000);
 
-  //  // Alternative method:
-  //  // motor.run(L298N::FORWARD);
-  //
-  //  //print the motor status in the serial monitor
-  //  printSomeInfo();
-  //
-  //  delay(3000);
-  //
-  //  // Stop
-  //  motor.stop();
-  //
-  //  // Alternative method:
-  //  // motor.run(L298N::STOP);
-  //
-  //  printSomeInfo();
-  //
-  //  // Change speed
-  //  motor.setSpeed(255);
-  //
-  //  delay(3000);
-  //
-  //  // Tell the motor to go back (may depend by your wiring)
-  //  motor.backward();
-  //
-  //  // Alternative method:
-  //  // motor.run(L298N::BACKWARD);
-  //
-  //  printSomeInfo();
-  //
-  //  motor.setSpeed(120);
-  //
-  //  delay(3000);
-  //
-  //  // Stop
-  //  motor.stop();
-  //
-  //  printSomeInfo();
-  //
-  //  delay(3000);
 }
+
 
 /*
-  Print some informations in Serial Monitor
+   Gets the GPS coords and tests whether it's in "bounds"
+
+   @params: none
+   @return: void
 */
-void printSomeInfo()
-{
-  Serial.print("Motor is moving = ");
-  Serial.print(motor.isMoving());
-  Serial.print(" at speed = ");
-  Serial.println(motor.getSpeed());
+void locationBarrier() {
+  while (ss.available() > 0)
+    if (gps.encode(ss.read()))
+      getGPSInfo();
 }
 
-
+void getGPSInfo()
+{
+  Serial.print(F("Location: "));
+  if (gps.location.isValid())
+  {
+    Serial.print(gps.location.lat(), 6);
+    Serial.print(F(","));
+    Serial.print(gps.location.lng(), 6);
+  }
+  else
+  {
+    Serial.println(F("INVALID"));
+  }
+}
 
 void logEvent(String dataToLog) {
   /*
